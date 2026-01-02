@@ -1,39 +1,45 @@
-# pihole-adlist-cleanup
-Automated Pi-hole adlist cleanup script - automatically disables adlists after repeated failures
-# Pi-hole Adlist Auto-Cleanup Script - Installation Guide
+# Pi-hole Adlist Auto-Cleanup
+
+Automated monitoring and cleanup script for Pi-hole that tracks gravity update failures and automatically disables adlists that consistently fail to load.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Pi-hole](https://img.shields.io/badge/Pi--hole-Compatible-96060C.svg)](https://pi-hole.net/)
 
 ## Overview
 
-This script automatically monitors Pi-hole gravity update failures and disables adlists that consistently fail to load. After 10 failed attempts over a 30-day period, the script automatically disables the problematic adlist and logs the action.
+Pi-hole is an excellent network-wide ad blocker, but adlist sources can become unavailable over time due to server downtime, domain expiration, or project abandonment. This script automatically monitors your Pi-hole's gravity update failures and disables adlists that repeatedly fail, keeping your Pi-hole configuration clean and your gravity updates running smoothly.
+
+**Problem it solves:** Manually tracking which adlists are broken and removing them from your Pi-hole configuration is tedious. This script automates the entire process.
 
 ## Features
 
-- **Automatic Monitoring**: Tracks adlist failures from gravity updates
-- **Configurable Thresholds**: Default 10 failures in 30 days (customizable)
-- **Safe Operation**: Disables (not deletes) broken adlists
-- **Detailed Logging**: Maintains failure history and cleanup logs
-- **Dry-Run Mode**: Test without making changes
-- **Statistics Reporting**: View failure trends
-- **Automatic Cleanup**: Removes old failure records
+- ✅ **Automatic Failure Tracking** - Monitors gravity logs for inaccessible adlists
+- ✅ **Configurable Thresholds** - Default: 10 failures over 30 days (fully customizable)
+- ✅ **Safe Operation** - Disables problematic lists rather than deleting them
+- ✅ **Detailed Logging** - Maintains comprehensive failure history
+- ✅ **Dry-Run Mode** - Test the script without making changes
+- ✅ **Statistics Reporting** - View failure trends and identify problem lists
+- ✅ **Automatic Cleanup** - Removes old failure records to prevent log bloat
+- ✅ **Easy Re-enabling** - Disabled lists can be quickly re-enabled if they come back online
+- ✅ **Notification Ready** - Includes hooks for email, Pushover, or other notification systems
 
-## Installation
+## Quick Start
 
-### 1. Copy the Script
+### Installation
 
 ```bash
-sudo cp pihole-adlist-cleanup.sh /usr/local/bin/
+# Download the script
+wget https://raw.githubusercontent.com/DorkPirate/pihole-adlist-cleanup/main/pihole-adlist-cleanup.sh -O /tmp/pihole-adlist-cleanup.sh
+
+# Install it
+sudo mv /tmp/pihole-adlist-cleanup.sh /usr/local/bin/
 sudo chmod +x /usr/local/bin/pihole-adlist-cleanup.sh
-```
 
-### 2. Test the Script
-
-Run in dry-run mode first to see what it would do:
-
-```bash
+# Test it (dry-run mode - no changes made)
 sudo /usr/local/bin/pihole-adlist-cleanup.sh --dry-run
 ```
 
-### 3. Set Up Automated Execution
+### Automate It
 
 Add to crontab to run daily at 3 AM (after gravity typically runs):
 
@@ -47,64 +53,29 @@ Add this line:
 0 3 * * * /usr/local/bin/pihole-adlist-cleanup.sh
 ```
 
-**Alternative**: Run after each gravity update by creating a post-gravity hook:
-
-```bash
-# Create the hook directory if it doesn't exist
-sudo mkdir -p /etc/pihole/post-update.d
-
-# Create a symlink to the script
-sudo ln -s /usr/local/bin/pihole-adlist-cleanup.sh /etc/pihole/post-update.d/01-cleanup-adlists
-```
-
-## Configuration
-
-Edit the script to adjust these settings at the top:
-
-```bash
-FAILURE_THRESHOLD=10        # Number of failures before removal
-DAYS_WINDOW=30              # Time window to track failures (days)
-LOG_DIR="/var/log/pihole-cleanup"
-```
-
-### Common Configurations
-
-**More aggressive** (remove faster):
-```bash
-FAILURE_THRESHOLD=5
-DAYS_WINDOW=14
-```
-
-**More lenient** (give more chances):
-```bash
-FAILURE_THRESHOLD=20
-DAYS_WINDOW=60
-```
-
 ## Usage
 
-### Basic Usage
+### Basic Commands
 
-Run the cleanup check manually:
 ```bash
+# Run the cleanup check manually
 sudo /usr/local/bin/pihole-adlist-cleanup.sh
-```
 
-### Dry Run (Test Mode)
-
-See what would happen without making changes:
-```bash
+# Test without making changes (dry-run mode)
 sudo /usr/local/bin/pihole-adlist-cleanup.sh --dry-run
-```
 
-### View Statistics
-
-Check which adlists are failing:
-```bash
+# View failure statistics
 sudo /usr/local/bin/pihole-adlist-cleanup.sh --stats
+
+# Reset failure tracking log
+sudo /usr/local/bin/pihole-adlist-cleanup.sh --reset
+
+# Show help
+sudo /usr/local/bin/pihole-adlist-cleanup.sh --help
 ```
 
-Example output:
+### Example Statistics Output
+
 ```
 === Pi-hole Adlist Failure Statistics ===
 
@@ -118,67 +89,73 @@ Top failing adlists:
    5 18,https://another-list.com/domains.txt
 ```
 
-### Reset Failure Log
-
-Clear all failure history:
-```bash
-sudo /usr/local/bin/pihole-adlist-cleanup.sh --reset
-```
-
-### View Logs
-
-Check the cleanup log:
-```bash
-sudo tail -f /var/log/pihole-cleanup/cleanup.log
-```
-
-Check the failure tracking log:
-```bash
-sudo cat /var/log/pihole-cleanup/adlist_failures.log
-```
-
 ## How It Works
 
-1. **Detection**: Script parses Pi-hole logs for "was inaccessible during last gravity run" messages
-2. **Recording**: Each failure is logged with timestamp, adlist ID, and URL
-3. **Counting**: Counts failures for each adlist within the configured time window
-4. **Action**: When threshold is exceeded, the adlist is disabled (not deleted)
-5. **Notification**: Logs the action and optionally sends notifications
-6. **Cleanup**: Removes failure records older than the time window + 7 days
+1. **Detection** - Script parses Pi-hole logs for "was inaccessible during last gravity run" messages
+2. **Recording** - Each failure is logged with timestamp, adlist ID, and URL
+3. **Counting** - Tracks failures for each adlist within the configured time window
+4. **Action** - When threshold is exceeded, the adlist is disabled (not deleted)
+5. **Notification** - Logs the action to `/var/log/pihole-cleanup/cleanup.log`
+6. **Cleanup** - Removes failure records older than the time window + 7 days
 
-## Understanding the Logs
+## Configuration
 
-### Cleanup Log Format
+Edit these variables at the top of the script to customize behavior:
+
+```bash
+FAILURE_THRESHOLD=10        # Number of failures before removal
+DAYS_WINDOW=30              # Time window to track failures (days)
+LOG_DIR="/var/log/pihole-cleanup"
+```
+
+### Configuration Examples
+
+**More Aggressive** (remove faster):
+```bash
+FAILURE_THRESHOLD=5
+DAYS_WINDOW=14
+```
+
+**More Lenient** (give more chances):
+```bash
+FAILURE_THRESHOLD=20
+DAYS_WINDOW=60
+```
+
+## Logs
+
+The script maintains two log files in `/var/log/pihole-cleanup/`:
+
+### Cleanup Log (`cleanup.log`)
+General script execution and actions taken:
 ```
 [2025-01-01 03:00:15] [INFO] Starting Pi-hole Adlist Cleanup Check
-[2025-01-01 03:00:16] [INFO] Recorded failure for adlist ID 27: https://osint.digitalside.it/...
-[2025-01-01 03:00:16] [INFO] Adlist ID 27 has 10 failures in the last 30 days
-[2025-01-01 03:00:16] [WARNING] Disabled adlist ID 27 after 10 failures: https://osint.digitalside.it/...
+[2025-01-01 03:00:16] [WARNING] Disabled adlist ID 27 after 10 failures
 ```
 
-### Failure Log Format (CSV)
+### Failure Log (`adlist_failures.log`)
+CSV format tracking all failures:
 ```
 timestamp,adlist_id,address,status
-2025-01-01 03:00:15,27,https://osint.digitalside.it/Threat-Intel/lists/latestdomains.txt,failed
-2025-01-02 03:00:18,27,https://osint.digitalside.it/Threat-Intel/lists/latestdomains.txt,failed
+2025-01-01 03:00:15,27,https://osint.digitalside.it/...,failed
 ```
 
-## Re-enabling Disabled Adlists
+## Re-enabling Adlists
 
-If an adlist comes back online, you can re-enable it through the Pi-hole web interface:
+If a previously disabled adlist comes back online:
 
-1. Go to **Group Management** → **Adlists**
+1. Go to **Pi-hole Web Interface** → **Group Management** → **Adlists**
 2. Find the disabled list (shows as "Disabled")
 3. Click the toggle to re-enable
 4. Run `pihole -g` to update gravity
 
-The script will start tracking it again if it fails in the future.
+The script will continue monitoring it and track new failures if they occur.
 
 ## Notifications (Optional)
 
-The script includes a `send_notification()` function stub. You can customize it to integrate with your notification system:
+The script includes a `send_notification()` function that you can customize. Examples:
 
-### Example: Email Notification
+### Email Notification
 
 ```bash
 send_notification() {
@@ -191,7 +168,7 @@ send_notification() {
 }
 ```
 
-### Example: Pushover Notification
+### Pushover Notification
 
 ```bash
 send_notification() {
@@ -207,102 +184,120 @@ send_notification() {
 }
 ```
 
+## Requirements
+
+- Pi-hole v5.0 or later
+- Bash 4.0+
+- SQLite3 (included with Pi-hole)
+- Root/sudo access
+
+## Compatibility
+
+Tested on:
+- Raspberry Pi OS (Debian-based)
+- Ubuntu Server
+- Docker Pi-hole installations
+
+Should work on any Linux system running Pi-hole.
+
+## Documentation
+
+For detailed installation instructions, troubleshooting, and advanced configuration, see the [Installation Guide](INSTALLATION_GUIDE.md).
+
 ## Troubleshooting
 
-### Script Not Finding Failures
+### Script reports no failures but gravity shows errors
 
-**Problem**: Script reports no failures even though gravity shows errors
-
-**Solution**: Check if Pi-hole logs are in a different location:
+Check if Pi-hole logs are in a different location:
 ```bash
-# Find your Pi-hole log location
 ls -la /var/log/pihole/
-
-# Update the log_file variable in parse_gravity_log() function if needed
 ```
 
-### Permission Errors
+Update the `log_file` variable in the `parse_gravity_log()` function if needed.
 
-**Problem**: Script can't write to log directory
+### Permission errors
 
-**Solution**: Ensure the script runs as root via cron or sudo:
+Ensure the script runs as root:
 ```bash
 sudo chmod +x /usr/local/bin/pihole-adlist-cleanup.sh
 sudo chown root:root /usr/local/bin/pihole-adlist-cleanup.sh
 ```
 
-### Database Locked Errors
-
-**Problem**: SQLite database busy/locked errors
-
-**Solution**: Ensure the script doesn't run simultaneously with gravity:
-```bash
-# Add a lock file check at the beginning of main()
-if [[ -f /var/lock/pihole-cleanup.lock ]]; then
-    exit 0
-fi
-touch /var/lock/pihole-cleanup.lock
-# ... rest of script
-rm /var/lock/pihole-cleanup.lock
-```
-
-## Maintenance
-
-### Regular Checks
-
-Periodically review the statistics:
-```bash
-sudo /usr/local/bin/pihole-adlist-cleanup.sh --stats
-```
-
-### Log Rotation
-
-Add log rotation to prevent logs from growing too large:
-
-Create `/etc/logrotate.d/pihole-cleanup`:
-```
-/var/log/pihole-cleanup/*.log {
-    weekly
-    rotate 4
-    compress
-    missingok
-    notifempty
-}
-```
-
-## Example Workflow
-
-1. **Initial Setup**: Install script, run `--dry-run` to verify behavior
-2. **Monitor**: Run `--stats` weekly to see which lists are problematic
-3. **Adjust**: If needed, modify `FAILURE_THRESHOLD` or `DAYS_WINDOW`
-4. **Automated**: Let cron handle daily checks
-5. **Review**: Occasionally check cleanup logs for disabled lists
-6. **Update**: Replace disabled lists with alternatives or re-enable when fixed
-
-## Uninstallation
+### View detailed logs
 
 ```bash
-# Remove cron job
-sudo crontab -e  # Delete the pihole-adlist-cleanup line
+# Watch cleanup log in real-time
+sudo tail -f /var/log/pihole-cleanup/cleanup.log
 
-# Remove script
-sudo rm /usr/local/bin/pihole-adlist-cleanup.sh
-
-# Optionally remove logs
-sudo rm -rf /var/log/pihole-cleanup
+# View failure tracking
+sudo cat /var/log/pihole-cleanup/adlist_failures.log
 ```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+### Development
+
+```bash
+# Clone the repository
+git clone https://github.com/DorkPirate/pihole-adlist-cleanup.git
+cd pihole-adlist-cleanup
+
+# Make your changes
+# Test with dry-run mode
+sudo ./pihole-adlist-cleanup.sh --dry-run
+
+# Submit a PR
+```
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Author
+
+**Matt** - Systems Engineer & Security Specialist
+- Rite-Solutions (NUWC Contracts)
+- 20-year Navy veteran specializing in submarine communications and cybersecurity
+- CompTIA SecurityX certified
+
+## Acknowledgments
+
+- Pi-hole team for creating an excellent network-wide ad blocker
+- The open-source community maintaining adlist sources
+- Inspired by the need to automate maintenance of my home network infrastructure
 
 ## Support
 
-For issues specific to:
-- **Pi-hole**: Check Pi-hole documentation or forums
-- **This script**: Review logs in `/var/log/pihole-cleanup/`
-- **Adlist sources**: Check the source's GitHub/website for status
+- **Issues**: [GitHub Issues](https://github.com/DorkPirate/pihole-adlist-cleanup/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/DorkPirate/pihole-adlist-cleanup/discussions)
+- **Pi-hole Documentation**: [https://docs.pi-hole.net/](https://docs.pi-hole.net/)
 
-## Version History
+## Changelog
 
-- **v1.0**: Initial release
-  - Automatic failure tracking
-  - Configurable thresholds
-  - Dry-run mode
-  - Statistics reporting
+### v1.0.0 (2026-01-01)
+- Initial release
+- Automatic failure tracking
+- Configurable thresholds (10 failures over 30 days default)
+- Dry-run mode for safe testing
+- Statistics reporting
+- Comprehensive logging
+- Old record cleanup
+
+## Roadmap
+
+- [ ] Add email notification integration
+- [ ] Create web dashboard for failure statistics
+- [ ] Add support for automatic adlist replacement suggestions
+- [ ] Integration with Pi-hole Telegram Bot
+- [ ] Backup/restore functionality for adlist configurations
+- [ ] Support for custom failure patterns
+
+---
+
+**Star this repository** if you find it useful! ⭐
+
+**Found a bug?** Please open an [issue](https://github.com/DorkPirate/pihole-adlist-cleanup/issues).
+
+**Want to contribute?** Pull requests are welcome!
