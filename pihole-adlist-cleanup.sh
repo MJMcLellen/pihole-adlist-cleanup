@@ -12,7 +12,7 @@
 # License: MIT
 # Version: 2.0 (Security Hardened)
 
-set -euo pipefail  # Exit on error, undefined variables, and pipe failures
+set -uo pipefail  # Exit on undefined variables and pipe failures (removed -e for better control)
 IFS=$'\n\t'        # Safer Internal Field Separator
 
 # Configuration
@@ -23,7 +23,7 @@ readonly FAILURE_LOG="$LOG_DIR/adlist_failures.log"
 readonly SCRIPT_LOG="$LOG_DIR/cleanup.log"
 readonly PIHOLE_DB="/etc/pihole/gravity.db"
 readonly LOCK_FILE="/var/lock/pihole-adlist-cleanup.lock"
-readonly LOCK_FD=200
+LOCK_FD=200
 
 DRY_RUN=false              # Set to true for testing without actual removal
 
@@ -38,8 +38,8 @@ cleanup() {
     local exit_code=$?
     
     # Release lock if held
-    if [[ -n "${LOCK_FD:-}" ]] && [[ -e "/proc/$$/fd/$LOCK_FD" ]]; then
-        flock -u "$LOCK_FD" 2>/dev/null || true
+    if [[ -e "/proc/$$/fd/200" ]]; then
+        flock -u 200 2>/dev/null || true
     fi
     
     # Remove lock file
@@ -57,8 +57,8 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 # Acquire exclusive lock to prevent concurrent execution
-exec {LOCK_FD}>"$LOCK_FILE"
-if ! flock -n "$LOCK_FD"; then
+exec 200>"$LOCK_FILE"
+if ! flock -n 200; then
     echo "Another instance of this script is already running. Exiting." >&2
     exit 0
 fi
@@ -91,11 +91,16 @@ log_message() {
     local timestamp
     timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     
-    # Use flock for atomic log writes
+    local log_line="[$timestamp] [$level] $message"
+    
+    # Print to terminal
+    echo "$log_line"
+    
+    # Write to log file with flock for atomicity
     (
         flock -x 201
-        echo "[$timestamp] [$level] $message"
-    ) 201>>"$SCRIPT_LOG"
+        echo "$log_line" >&201
+    ) 201>>"$SCRIPT_LOG" 2>/dev/null
 }
 
 # Function to validate numeric input (prevent SQL injection)
