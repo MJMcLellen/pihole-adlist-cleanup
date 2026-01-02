@@ -284,16 +284,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Statistics reporting
 - Comprehensive logging
 - Old record cleanup
-
-## Roadmap
-
-- [ ] Add email notification integration
-- [ ] Create web dashboard for failure statistics
-- [ ] Add support for automatic adlist replacement suggestions
-- [ ] Integration with Pi-hole Telegram Bot
-- [ ] Backup/restore functionality for adlist configurations
-- [ ] Support for custom failure patterns
-
 ---
 
 **Star this repository** if you find it useful! ⭐
