@@ -227,8 +227,8 @@ build_failure_counts() {
         # Skip header
         [[ "$timestamp" == "timestamp" ]] && continue
         
-        # Compare timestamps
-        if [[ "$timestamp" >= "$cutoff_date" ]]; then
+        # Compare timestamps (lexicographic comparison works for ISO date format)
+        if [[ "$timestamp" > "$cutoff_date" ]] || [[ "$timestamp" == "$cutoff_date" ]]; then
             # Increment count for this ID
             ((FAILURE_COUNTS[$id]++)) 2>/dev/null || FAILURE_COUNTS[$id]=1
         fi
