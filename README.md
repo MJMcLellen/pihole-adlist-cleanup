@@ -29,7 +29,7 @@ Pi-hole is an excellent network-wide ad blocker, but adlist sources can become u
 
 ```bash
 # Download the script
-wget https://raw.githubusercontent.com/DorkPirate/pihole-adlist-cleanup/main/pihole-adlist-cleanup.sh -O /tmp/pihole-adlist-cleanup.sh
+wget https://raw.githubusercontent.com/MJMcLellen/pihole-adlist-cleanup/Muppet/pihole-adlist-cleanup.sh
 
 # Install it
 sudo mv /tmp/pihole-adlist-cleanup.sh /usr/local/bin/
