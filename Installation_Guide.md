@@ -16,6 +16,19 @@ This script automatically monitors Pi-hole gravity update failures and disables 
 
 ## Installation
 
+## Requirements
+
+**Standard Pi-hole:**
+* Pi-hole v5.0 or later
+* Bash 4.0+
+* SQLite3 (included with Pi-hole)
+* Root/sudo access
+
+**Docker Pi-hole:**
+* Pi-hole v5.0 or later (Docker image)
+* Bash 4.0+ (included in container)
+* pihole-FTL (included in container)
+* Access to docker exec commands
 ### 1. Copy the Script
 
 ```bash
@@ -242,6 +255,31 @@ fi
 touch /var/lock/pihole-cleanup.lock
 # ... rest of script
 rm /var/lock/pihole-cleanup.lock
+```
+
+### Docker-Specific Issues
+
+**sqlite3 not found error:**
+```bash
+# This means you're running Docker Pi-hole
+# Use pihole-FTL sqlite3 instead
+sed -i 's/sqlite3 /pihole-FTL sqlite3 /g' /usr/local/bin/pihole-adlist-cleanup.sh
+```
+
+**Cron not running in container:**
+```bash
+# Check if cron is running
+docker exec pihole pgrep cron
+
+# If not, start it
+docker exec pihole cron
+```
+
+**Script lost after container restart:**
+For persistent installation across container updates, add to your docker-compose.yml:
+```yaml
+volumes:
+  - ./pihole-scripts:/usr/local/bin/custom:ro
 ```
 
 ## Maintenance
