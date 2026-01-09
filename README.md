@@ -286,6 +286,29 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Old record cleanup
 ---
 
+## Docker Installation
+
+For Docker Pi-hole installations, the script requires a small modification:
+```bash
+# Download the script
+wget https://raw.githubusercontent.com/MJMcLellen/pihole-adlist-cleanup/Muppet/pihole-adlist-cleanup.sh -O /tmp/pihole-adlist-cleanup.sh
+
+# Fix for Docker (replace sqlite3 with pihole-FTL sqlite3)
+sed -i 's/sqlite3 /pihole-FTL sqlite3 /g' /tmp/pihole-adlist-cleanup.sh
+
+# Copy into container
+docker cp /tmp/pihole-adlist-cleanup.sh pihole:/usr/local/bin/pihole-adlist-cleanup.sh
+docker exec pihole chmod +x /usr/local/bin/pihole-adlist-cleanup.sh
+
+# Test it
+docker exec pihole /usr/local/bin/pihole-adlist-cleanup.sh --dry-run
+
+# Set up cron job inside container
+docker exec -it pihole bash
+crontab -e
+# Add: 0 3 * * * /usr/local/bin/pihole-adlist-cleanup.sh >> /var/log/pihole-cleanup/cron.log 2>&1
+```
+
 **Star this repository** if you find it useful! ⭐
 
 **Found a bug?** Please open an [issue](https://github.com/DorkPirate/pihole-adlist-cleanup/issues).
